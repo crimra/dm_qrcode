@@ -107,3 +107,5 @@ Le serveur démarre sur `http://localhost:3000`.
 - Statistiques de scan (nombre de redirections par lien)
 - Génération des QR codes directement depuis l'interface admin
 - Expiration automatique de liens
+
+# dm_qrcode
