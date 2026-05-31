@@ -1,0 +1,17 @@
+{
+  "maquette-01": {
+    "target": "https://v3d.example.com/projet-alpha/v3",
+    "label": "Maquette Projet Alpha",
+    "updatedAt": "2026-05-31"
+  },
+  "maquette-02": {
+    "target": "https://v3d.example.com/projet-beta/v1",
+    "label": "Maquette Projet Beta",
+    "updatedAt": "2026-05-31"
+  },
+  "01": {
+    "target": "https://virtual.somedia.cg/show/?m=QNsw49NeZ8m",
+    "label": "TPI",
+    "updatedAt": "2026-05-31"
+  }
+}

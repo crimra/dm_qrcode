@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DM QRcode — Administration</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: white;
+      padding: 1.2rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    header h1 { font-size: 1.3rem; font-weight: 600; }
+    header span { font-size: 0.85rem; opacity: 0.6; }
+
+    main { max-width: 900px; margin: 2rem auto; padding: 0 1.5rem; }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 1.8rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1.2rem; color: #1a1a2e; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 2fr 2fr auto;
+      gap: 0.8rem;
+      align-items: end;
+    }
+
+    label { display: block; font-size: 0.8rem; font-weight: 500; margin-bottom: 0.3rem; color: #555; }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.55rem 0.8rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus { outline: none; border-color: #4f46e5; }
+
+    button {
+      padding: 0.55rem 1.2rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button:hover { opacity: 0.85; }
+
+    .btn-primary { background: #4f46e5; color: white; }
+    .btn-danger  { background: #ef4444; color: white; padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+    .btn-edit    { background: #f59e0b; color: white; padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+
+    #message {
+      padding: 0.7rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    #message.success { background: #d1fae5; color: #065f46; display: block; }
+    #message.error   { background: #fee2e2; color: #991b1b; display: block; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+
+    thead tr { background: #f8f9fa; }
+
+    th, td {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    th { font-weight: 600; font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    td code {
+      background: #f0f2f5;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.82rem;
+      color: #4f46e5;
+    }
+
+    .url-cell {
+      max-width: 280px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .url-cell a { color: #4f46e5; text-decoration: none; }
+    .url-cell a:hover { text-decoration: underline; }
+
+    .actions { display: flex; gap: 0.4rem; }
+
+    .date-cell { color: #aaa; font-size: 0.82rem; }
+
+    #no-links { text-align: center; color: #aaa; padding: 2rem; }
+
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: white;
+      border-radius: 10px;
+      padding: 1.8rem;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    }
+
+    .modal h2 { font-size: 1rem; margin-bottom: 1.2rem; color: #1a1a2e; }
+
+    .modal-actions { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1.2rem; }
+
+    .btn-secondary { background: #e5e7eb; color: #374151; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>DM QRcode</h1>
+  <span>/ Administration des liens</span>
+</header>
+
+<main>
+
+  <div id="message"></div>
+
+  <!-- Formulaire d'ajout -->
+  <div class="card">
+    <h2>Ajouter un nouveau lien</h2>
+    <div class="form-row">
+      <div>
+        <label for="new-id">Identifiant</label>
+        <input type="text" id="new-id" placeholder="maquette-01">
+      </div>
+      <div>
+        <label for="new-target">URL cible (V3D)</label>
+        <input type="text" id="new-target" placeholder="https://v3d.example.com/...">
+      </div>
+      <div>
+        <label for="new-label">Label (optionnel)</label>
+        <input type="text" id="new-label" placeholder="Nom du projet">
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button class="btn-primary" onclick="createLink()">Ajouter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Liste des liens -->
+  <div class="card">
+    <h2>Liens existants</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Identifiant</th>
+          <th>Label</th>
+          <th>URL cible</th>
+          <th>Mis à jour</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="links-table">
+        <tr><td colspan="5" id="no-links">Chargement...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<!-- Modal d'édition -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h2>Modifier le lien</h2>
+    <input type="hidden" id="edit-id">
+    <div style="margin-bottom:0.8rem">
+      <label for="edit-target">Nouvelle URL cible</label>
+      <input type="text" id="edit-target" style="margin-top:0.3rem">
+    </div>
+    <div>
+      <label for="edit-label">Label</label>
+      <input type="text" id="edit-label" style="margin-top:0.3rem">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn-primary" onclick="saveEdit()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  async function loadLinks() {
+    const res = await fetch('/api/links');
+    const links = await res.json();
+    const tbody = document.getElementById('links-table');
+
+    const entries = Object.entries(links);
+
+    if (entries.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" id="no-links">Aucun lien pour l\'instant.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = entries.map(([id, data]) => `
+      <tr>
+        <td><code>/r/${id}</code></td>
+        <td>${data.label || '<span style="color:#ccc">—</span>'}</td>
+        <td class="url-cell"><a href="${data.target}" target="_blank">${data.target}</a></td>
+        <td class="date-cell">${data.updatedAt}</td>
+        <td class="actions">
+          <button class="btn-edit" onclick="openModal('${id}', '${escapeAttr(data.target)}', '${escapeAttr(data.label || '')}')">Modifier</button>
+          <button class="btn-danger" onclick="deleteLink('${id}')">Supprimer</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  async function createLink() {
+    const id     = document.getElementById('new-id').value.trim();
+    const target = document.getElementById('new-target').value.trim();
+    const label  = document.getElementById('new-label').value.trim();
+
+    if (!id || !target) return showMessage('Les champs Identifiant et URL cible sont obligatoires.', 'error');
+
+    const res = await fetch('/api/links', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, target, label }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) return showMessage(data.error, 'error');
+
+    document.getElementById('new-id').value = '';
+    document.getElementById('new-target').value = '';
+    document.getElementById('new-label').value = '';
+    showMessage('Lien créé avec succès.', 'success');
+    loadLinks();
+  }
+
+  async function deleteLink(id) {
+    if (!confirm(`Supprimer le lien "${id}" ?`)) return;
+
+    const res = await fetch(`/api/links/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+
+    if (!res.ok) return showMessage(data.error, 'error');
+
+    showMessage('Lien supprimé.', 'success');
+    loadLinks();
+  }
+
+  function openModal(id, target, label) {
+    document.getElementById('edit-id').value = id;
+    document.getElementById('edit-target').value = target;
+    document.getElementById('edit-label').value = label;
+    document.getElementById('edit-modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('edit-modal').classList.remove('open');
+  }
+
+  async function saveEdit() {
+    const id     = document.getElementById('edit-id').value;
+    const target = document.getElementById('edit-target').value.trim();
+    const label  = document.getElementById('edit-label').value.trim();
+
+    if (!target) return showMessage('L\'URL cible est obligatoire.', 'error');
+
+    const res = await fetch(`/api/links/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target, label }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) return showMessage(data.error, 'error');
+
+    closeModal();
+    showMessage('Lien mis à jour.', 'success');
+    loadLinks();
+  }
+
+  function showMessage(text, type) {
+    const el = document.getElementById('message');
+    el.textContent = text;
+    el.className = type;
+    setTimeout(() => { el.className = ''; el.textContent = ''; }, 4000);
+  }
+
+  function escapeAttr(str) {
+    return str.replace(/'/g, "\\'");
+  }
+
+  loadLinks();
+</script>
+
+</body>
+</html>
