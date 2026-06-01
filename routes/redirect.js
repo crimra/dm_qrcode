@@ -1,21 +1,12 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
+const redis = require('../lib/redis');
 
 const router = express.Router();
-const DATA_FILE = path.join(__dirname, '../data/links.json');
-
-function loadLinks() {
-  const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-  return JSON.parse(raw);
-}
 
 // GET /r/:id — redirige vers l'URL cible
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   const { id } = req.params;
-  const links = loadLinks();
-
-  const entry = links[id];
+  const entry = await redis.hget('links', id);
 
   if (!entry) {
     return res.status(404).send(`

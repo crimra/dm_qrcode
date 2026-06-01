@@ -1,51 +1,42 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
+const redis = require('../lib/redis');
 
 const router = express.Router();
-const DATA_FILE = path.join(__dirname, '../data/links.json');
-
-function loadLinks() {
-  const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-  return JSON.parse(raw);
-}
-
-function saveLinks(links) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(links, null, 2), 'utf-8');
-}
 
 // GET /api/links — liste tous les liens
-router.get('/', (req, res) => {
-  const links = loadLinks();
-  res.json(links);
+router.get('/', async (req, res) => {
+  const links = await redis.hgetall('links');
+  res.json(links || {});
+});
+
+// GET /api/links/:id/qr-url — retourne l'URL encodée dans le QR
+router.get('/:id/qr-url', async (req, res) => {
+  const { id } = req.params;
+  const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+  res.json({ url: `${base}/r/${id}` });
 });
 
 // POST /api/links — crée un nouveau lien
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { id, target, label } = req.body;
 
   if (!id || !target) {
     return res.status(400).json({ error: 'Les champs "id" et "target" sont obligatoires.' });
   }
 
-  const links = loadLinks();
-
-  if (links[id]) {
+  const existing = await redis.hget('links', id);
+  if (existing) {
     return res.status(409).json({ error: `L'identifiant "${id}" existe déjà.` });
   }
 
-  links[id] = {
-    target,
-    label: label || '',
-    updatedAt: new Date().toISOString().split('T')[0],
-  };
+  const entry = { target, label: label || '', updatedAt: new Date().toISOString().split('T')[0] };
+  await redis.hset('links', { [id]: entry });
 
-  saveLinks(links);
-  res.status(201).json({ message: 'Lien créé.', link: links[id] });
+  res.status(201).json({ message: 'Lien créé.', link: entry });
 });
 
-// PUT /api/links/:id — met à jour l'URL cible d'un lien
-router.put('/:id', (req, res) => {
+// PUT /api/links/:id — met à jour un lien
+router.put('/:id', async (req, res) => {
   const { id } = req.params;
   const { target, label } = req.body;
 
@@ -53,34 +44,27 @@ router.put('/:id', (req, res) => {
     return res.status(400).json({ error: 'Le champ "target" est obligatoire.' });
   }
 
-  const links = loadLinks();
-
-  if (!links[id]) {
+  const existing = await redis.hget('links', id);
+  if (!existing) {
     return res.status(404).json({ error: `L'identifiant "${id}" est introuvable.` });
   }
 
-  links[id] = {
-    ...links[id],
-    target,
-    label: label !== undefined ? label : links[id].label,
-    updatedAt: new Date().toISOString().split('T')[0],
-  };
+  const entry = { ...existing, target, label: label !== undefined ? label : existing.label, updatedAt: new Date().toISOString().split('T')[0] };
+  await redis.hset('links', { [id]: entry });
 
-  saveLinks(links);
-  res.json({ message: 'Lien mis à jour.', link: links[id] });
+  res.json({ message: 'Lien mis à jour.', link: entry });
 });
 
 // DELETE /api/links/:id — supprime un lien
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
   const { id } = req.params;
-  const links = loadLinks();
 
-  if (!links[id]) {
+  const existing = await redis.hget('links', id);
+  if (!existing) {
     return res.status(404).json({ error: `L'identifiant "${id}" est introuvable.` });
   }
 
-  delete links[id];
-  saveLinks(links);
+  await redis.hdel('links', id);
   res.json({ message: 'Lien supprimé.' });
 });
 
